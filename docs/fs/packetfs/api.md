@@ -46,17 +46,17 @@ pub fn clear_active_instance();
 可以维护一个全局当前实例：
 
 ```rust
-static ACTIVE_PACKETFS: OnceCell<Arc<PacketFsInner>>;
+static ACTIVE_PACKETFS: OnceLock<Mutex<Option<Arc<PacketFsInner>>>>;
 ```
 
-如果没有 `OnceCell`，可用 `UPSafeCell<Option<Arc<PacketFsInner>>>`。
+其中 `OnceLock` 来自 `std`，`Mutex` 来自 `crate::sync` 的自写锁实现。
 
 ## submit_rx_frame 流程
 
 1. 查找当前活跃 `PacketFsInner`。
 2. 如果没有挂载，计入或返回 `DroppedInactive`。
 3. 如果 `mounted=false`，返回 `DroppedInactive`。
-4. 获取 ring 锁。
+4. 使用 `try_lock()` 获取 ring 锁；忙时计入 `DroppedFull`。
 5. 调用 `PacketRing::push_frame()`。
 6. 更新 stats。
 7. 入队成功时 `wait_queue.wake_one()`。
@@ -67,5 +67,5 @@ static ACTIVE_PACKETFS: OnceCell<Arc<PacketFsInner>>;
 - 不睡眠。
 - 不访问用户缓冲区。
 - 不做串口打印。
-- 不长时间持锁。
+- 不长时间持锁；收包路径可以短暂自旋，但不使用会睡眠的标准库锁。
 - 不解析 IP/TCP。

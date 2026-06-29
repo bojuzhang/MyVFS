@@ -43,7 +43,7 @@ pub struct RootDirFile {
 
 ## 需要实现的 impl
 
-- `impl File for PacketFileKind`
+- `impl File for Mutex<PacketFileKind>`
 - `impl PacketCaptureFile`
   - `new(fs)`
   - `read_packets(buf)`
@@ -62,7 +62,9 @@ pub struct RootDirFile {
 4. 如果没有当前包，从 `PacketRing::pop_frame()` 取包。
 5. 如果 ring 为空：
    - 如果 `mounted=false`，返回 `EIO`。
-   - 否则把当前任务加入 wait queue 并阻塞。
+   - 否则先通过 `wait_queue.prepare_wait()` 持有 gate。
+   - 持有 gate 时重新检查 ring 和 mounted 状态。
+   - 如果仍需等待，调用 `sleep_current_with_guard()` 加入 wait queue 并阻塞。
    - 被唤醒后重新检查 ring。
 6. 取到包后编码 PCAP record header + payload。
 7. 支持小 buffer partial read。

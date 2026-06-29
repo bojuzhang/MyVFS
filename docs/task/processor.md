@@ -22,7 +22,8 @@ pub fn wakeup_task(task: Arc<TaskControlBlock>);
 
 ```text
 PacketCaptureFile::read()
- -> WaitQueue::sleep_current()
+ -> WaitQueue::prepare_wait()
+ -> WaitQueue::sleep_current_with_guard()
  -> block_current_and_run_next()
 ```
 

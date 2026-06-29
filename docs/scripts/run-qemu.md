@@ -4,6 +4,8 @@
 
 启动 QEMU RISC-V 教学内核，并连接 virtio-net 到 host TAP。
 
+当前项目默认运行模型是保留部分 `std` 的 host model。该脚本属于后续 QEMU/no_std 真实内核路径，要求已经存在可由 QEMU 加载的 RISC-V bare-metal kernel image。
+
 ## 预期命令
 
 ```bash

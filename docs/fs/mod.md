@@ -33,7 +33,7 @@ pub use fd::{FdTable, FileHandle, OpenFlags};
 - `MOUNT_TABLE`：全局挂载表。
 - `FS_REGISTRY`：文件系统类型注册表。
 
-这些全局状态应由 `UPSafeCell`、`SpinMutex` 或等价同步原语保护。
+这些全局状态由 `crate::sync::Mutex` 保护。当前内核 crate 允许继续使用 `std::collections`、`Arc`、`OnceLock` 等非锁能力，但不要为共享状态新增 `std::sync` 锁。
 
 ## 需要实现的接口
 

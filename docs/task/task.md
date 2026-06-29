@@ -13,13 +13,15 @@
 ```rust
 pub struct TaskControlBlock {
     pub pid: PidHandle,
-    pub task_status: TaskStatus,
-    pub fd_table: FdTable,
+    pub task_status: Mutex<TaskStatus>,
+    pub fd_table: Mutex<FdTable>,
     ...
 }
 ```
 
 字段名可按工程实际调整。
+
+这里的 `Mutex` 是 `crate::sync::Mutex`，用于避免任务状态和 fd table 继续依赖标准库锁。
 
 ## packetfs 相关适配
 

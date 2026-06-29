@@ -22,7 +22,7 @@ pub struct RamInode {
     pub id: u64,
     pub name: String,
     pub kind: FileType,
-    pub inner: Mutex<RamInodeInner>,
+    pub inner: Arc<Mutex<RamInodeInner>>,
 }
 ```
 
@@ -32,6 +32,8 @@ pub enum RamInodeInner {
     File(Vec<u8>),
 }
 ```
+
+这里的 `Mutex` 是 `crate::sync::Mutex`，不是 `std::sync::Mutex`。
 
 ```rust
 pub struct RamFile {

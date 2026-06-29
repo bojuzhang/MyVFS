@@ -52,6 +52,8 @@ pub struct PacketFsInner {
 }
 ```
 
+这里的 `Mutex` 和 `WaitQueue` 都来自 `crate::sync`。`fs.rs` 不再定义局部 `Condvar` 等待队列，也不使用 `std::sync::Mutex`。
+
 ## 需要实现的 impl
 
 ```rust
@@ -82,7 +84,7 @@ impl FileSystem for PacketFs {
 - 三个固定 inode。
 - packet queue。
 - packet stats。
-- 阻塞读等待队列。
+- 阻塞读等待队列，使用 `sync::WaitQueue`。
 - 单读者状态。
 - 是否仍处于 mounted 状态。
 
@@ -103,4 +105,3 @@ impl FileSystem for PacketFs {
 - 参数越界：`EINVAL`。
 - 内存分配失败：`ENOMEM`。
 - 已有活跃挂载实例时，如果实现单实例限制，返回 `EBUSY`。
-

@@ -2,7 +2,7 @@
 
 ## 项目目标
 
-本项目设计一个运行在 rCore 风格教学内核中的可挂载 VFS 文件系统 `packetfs`。它把 virtio-net 收到的原始 Ethernet frame 缓存在内核中，并通过普通文件接口暴露给用户程序：
+本项目设计一个运行在 rCore 风格教学内核中的可挂载 VFS 文件系统 `packetfs`。它把 网卡 RX 路径收到的原始 Ethernet frame 缓存在内核中，并通过普通文件接口暴露给用户程序：
 
 ```text
 /mnt/packetfs/packets
@@ -11,6 +11,10 @@
 
 ## 约束
 
+- 当前内核 crate 允许使用 `std`，例如集合、`Arc`、`OnceLock`、时间和宿主 IO。
+- 内核共享状态使用的锁必须来自 `kernel/src/sync/` 的自写实现；不要在 `kernel/src` 中新增 `std::sync::Mutex`、`RwLock` 或 `Condvar`。
+- 当前默认实现是保留部分 `std` 能力的 host model，用于验证 packetfs/VFS/PCAP/stats 行为。
+- QEMU/no_std RISC-V 真实内核是后续迁移目标；当前文档中涉及 QEMU 的脚本依赖未来可启动的 bare-metal kernel image。
 - `packetfs` 是可挂载文件系统，不是 `/dev/packet` 设备文件方案。
 - 用户访问路径固定为 `/mnt/packetfs/packets` 和 `/mnt/packetfs/stats`。
 - 不实现 TX 发包、socket、TCP/IP、ARP、ping。
@@ -69,6 +73,10 @@ scripts/
   collect-pcap.py
 docs/
 ```
+
+## 文档更新记录
+
+文档一致性更新记录维护在 [CHANGELOG.md](CHANGELOG.md)。修改实现口径、公共接口或约束时，应同步更新对应模块文档和该记录。
 
 ## 明确不做
 
