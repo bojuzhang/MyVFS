@@ -1,6 +1,12 @@
-/.agents
-/.codex
-/.claude
-/.vscode
+# IDE
+.agents/
+.codex/
+.claude/
+.vscode/
 
-/target
+# Python
+__pycache__/
+*.pyc
+
+# Rust
+target/
