@@ -7,4 +7,4 @@
 - 同步 `WaitQueue` 文档：阻塞读使用 `prepare_wait()` 与 `sleep_current_with_guard()` 保留检查条件到入睡之间的 gate，收包后通过 `wake_one()` 唤醒。
 - 同步 `packetfs`、`fs`、`task` 相关文档中的锁来源和等待队列描述，避免继续暗示可使用标准库锁。
 - 调整演示与运行文档口径：当前默认运行模型为保留部分 `std` 的 host model，QEMU/no_std RISC-V 真实内核作为后续迁移目标。
-
+- 将默认演示脚本切到 host model：用户程序以普通 `std` 可执行程序运行，非 RISC-V syscall wrapper 直接调用内核 host syscall，QEMU 路径保留为显式 legacy 模式。

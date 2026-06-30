@@ -1,13 +1,8 @@
-#![no_std]
-
 use core::fmt::{self, Write};
-use core::panic::PanicInfo;
 
 pub mod syscall;
 
-pub use syscall::{
-    close, exit, getdents, mount, open, read, stat, umount, write, Stat, O_RDONLY,
-};
+pub use syscall::{close, exit, getdents, mount, open, read, stat, umount, write, Stat, O_RDONLY};
 
 pub const STDIN: usize = 0;
 pub const STDOUT: usize = 1;
@@ -77,21 +72,4 @@ macro_rules! eprintln {
     ($fmt:expr, $($arg:tt)*) => {
         $crate::eprint(format_args!(concat!($fmt, "\n"), $($arg)*))
     };
-}
-
-#[no_mangle]
-#[link_section = ".text.entry"]
-pub extern "C" fn _start() -> ! {
-    let code = unsafe { main() };
-    exit(code);
-}
-
-extern "Rust" {
-    fn main() -> i32;
-}
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    eprintln!("user panic");
-    exit(-1);
 }

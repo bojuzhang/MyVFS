@@ -2,11 +2,17 @@
 
 ## 文件职责
 
-启动 QEMU RISC-V 教学内核，并连接 virtio-net 到 host TAP。
+默认启动 host model demo，运行 `packetdump` 并输出 PCAP hex 与 stats。传入 `--qemu` 或设置 `PACKETFS_DEMO_MODE=qemu` 时，保留旧 QEMU RISC-V 教学内核启动路径。
 
-当前项目默认运行模型是保留部分 `std` 的 host model。该脚本属于后续 QEMU/no_std 真实内核路径，要求已经存在可由 QEMU 加载的 RISC-V bare-metal kernel image。
+当前项目默认运行模型是保留部分 `std` 的 host model，不要求 QEMU、TAP 或 bare-metal kernel image。
 
 ## 预期命令
+
+```bash
+scripts/run-qemu.sh
+```
+
+legacy QEMU 路径：
 
 ```bash
 qemu-system-riscv64 \
@@ -26,9 +32,10 @@ qemu-system-riscv64 \
 
 ## 与 packetfs 的关系
 
-packetfs 本身不依赖 QEMU 参数，但 demo 需要 virtio-net RX 能收到 host frame。
+host demo 会在进程内向 `virtio_net` 注入一帧示例 Ethernet frame，再通过 `/mnt/packetfs/packets` 读取 PCAP。QEMU 模式仍依赖 guest virtio-net RX 能收到 host frame。
 
 ## 测试点
 
-- guest 启动日志能显示 virtio-net 初始化。
-- packetfs mount 后 stats 可读。
+- `packetfs mount success` 出现在输出中。
+- `PCAP_BEGIN` 到 `PCAP_END` 之间能恢复合法 PCAP。
+- stats 中 `captured_packets > 0`。

@@ -1,5 +1,7 @@
 #[cfg(target_arch = "riscv64")]
 use core::arch::asm;
+#[cfg(not(target_arch = "riscv64"))]
+use std::sync::Once;
 
 pub const O_RDONLY: u32 = 0;
 pub const O_WRONLY: u32 = 1;
@@ -16,6 +18,30 @@ pub const SYS_STAT: usize = 80;
 pub const SYS_EXIT: usize = 93;
 
 const EINVAL: isize = -22;
+
+#[cfg(not(target_arch = "riscv64"))]
+fn ensure_host_kernel() {
+    static INIT: Once = Once::new();
+    INIT.call_once(|| {
+        if let Err(err) = kernel::fs::init() {
+            std::eprintln!(
+                "kernel host init failed: {} ({})",
+                err.name(),
+                err.as_isize()
+            );
+            std::process::exit(1);
+        }
+    });
+}
+
+#[cfg(not(target_arch = "riscv64"))]
+fn syscall_host(id: usize, args: [usize; 3]) -> isize {
+    if id == SYS_EXIT {
+        std::process::exit(args[0] as i32);
+    }
+    ensure_host_kernel();
+    kernel::syscall::syscall(id, args)
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -87,26 +113,26 @@ fn syscall3(id: usize, arg0: usize, arg1: usize, arg2: usize) -> isize {
 
 #[cfg(not(target_arch = "riscv64"))]
 #[inline(always)]
-fn syscall0(_id: usize) -> isize {
-    -38
+fn syscall0(id: usize) -> isize {
+    syscall_host(id, [0, 0, 0])
 }
 
 #[cfg(not(target_arch = "riscv64"))]
 #[inline(always)]
-fn syscall1(_id: usize, _arg0: usize) -> isize {
-    -38
+fn syscall1(id: usize, arg0: usize) -> isize {
+    syscall_host(id, [arg0, 0, 0])
 }
 
 #[cfg(not(target_arch = "riscv64"))]
 #[inline(always)]
-fn syscall2(_id: usize, _arg0: usize, _arg1: usize) -> isize {
-    -38
+fn syscall2(id: usize, arg0: usize, arg1: usize) -> isize {
+    syscall_host(id, [arg0, arg1, 0])
 }
 
 #[cfg(not(target_arch = "riscv64"))]
 #[inline(always)]
-fn syscall3(_id: usize, _arg0: usize, _arg1: usize, _arg2: usize) -> isize {
-    -38
+fn syscall3(id: usize, arg0: usize, arg1: usize, arg2: usize) -> isize {
+    syscall_host(id, [arg0, arg1, arg2])
 }
 
 fn copy_cstr<const N: usize>(s: &str, buf: &mut [u8; N]) -> Result<*const u8, isize> {
@@ -185,9 +211,15 @@ pub fn getdents(fd: usize, buf: &mut [u8]) -> isize {
     syscall3(SYS_GETDENTS, fd, buf.as_mut_ptr() as usize, buf.len())
 }
 
+#[cfg(target_arch = "riscv64")]
 pub fn exit(code: i32) -> ! {
     let _ = syscall1(SYS_EXIT, code as usize);
     loop {}
+}
+
+#[cfg(not(target_arch = "riscv64"))]
+pub fn exit(code: i32) -> ! {
+    std::process::exit(code);
 }
 
 #[allow(dead_code)]

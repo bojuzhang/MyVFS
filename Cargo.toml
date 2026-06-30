@@ -1,4 +1,3 @@
 [workspace]
-members = ["kernel"]
+members = ["kernel", "user"]
 resolver = "2"
-

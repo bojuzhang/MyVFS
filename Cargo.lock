@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "kernel"
 version = "0.1.0"
+
+[[package]]
+name = "user"
+version = "0.1.0"
+dependencies = [
+ "kernel",
+]

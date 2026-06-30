@@ -14,7 +14,7 @@
 - 当前内核 crate 允许使用 `std`，例如集合、`Arc`、`OnceLock`、时间和宿主 IO。
 - 内核共享状态使用的锁必须来自 `kernel/src/sync/` 的自写实现；不要在 `kernel/src` 中新增 `std::sync::Mutex`、`RwLock` 或 `Condvar`。
 - 当前默认实现是保留部分 `std` 能力的 host model，用于验证 packetfs/VFS/PCAP/stats 行为。
-- QEMU/no_std RISC-V 真实内核是后续迁移目标；当前文档中涉及 QEMU 的脚本依赖未来可启动的 bare-metal kernel image。
+- QEMU/no_std RISC-V 真实内核是后续迁移目标；`scripts/run-qemu.sh --qemu` 保留旧 QEMU 启动路径，默认运行 host demo。
 - `packetfs` 是可挂载文件系统，不是 `/dev/packet` 设备文件方案。
 - 用户访问路径固定为 `/mnt/packetfs/packets` 和 `/mnt/packetfs/stats`。
 - 不实现 TX 发包、socket、TCP/IP、ARP、ping。

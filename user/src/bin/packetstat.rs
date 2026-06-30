@@ -1,9 +1,7 @@
-#![no_std]
-#![no_main]
-
 #[macro_use]
 extern crate user_lib;
 
+use std::process;
 use user_lib::{close, mount, open, read, write, O_RDONLY, STDOUT};
 
 const PACKETFS_TARGET: &str = "/mnt/packetfs";
@@ -23,8 +21,11 @@ const REQUIRED_FIELDS: [&[u8]; 9] = [
     b"reader_active",
 ];
 
-#[no_mangle]
-fn main() -> i32 {
+fn main() {
+    process::exit(run());
+}
+
+fn run() -> i32 {
     let mount_rc = mount("packetfs", PACKETFS_TARGET, MOUNT_OPTIONS);
     if mount_rc == 0 {
         println!("packetfs mount success: {}", PACKETFS_TARGET);
@@ -95,5 +96,7 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     if needle.is_empty() {
         return true;
     }
-    haystack.windows(needle.len()).any(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
 }

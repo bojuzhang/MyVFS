@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+MODE="${PACKETFS_DEMO_MODE:-host}"
+
+if [[ "${1:-}" == "--qemu" ]]; then
+    MODE="qemu"
+    shift
+fi
+
+if [[ "$MODE" == "host" ]]; then
+    cd "$REPO_ROOT"
+    exec cargo run -q -p user --bin "${DEMO_BIN:-packetdump}" -- "$@"
+fi
+
+if [[ "$MODE" != "qemu" ]]; then
+    echo "error: unknown PACKETFS_DEMO_MODE: $MODE" >&2
+    exit 1
+fi
+
 QEMU_BIN="${QEMU_BIN:-qemu-system-riscv64}"
 KERNEL="${KERNEL:-target/riscv64gc-unknown-none-elf/release/kernel}"
 TAP="${TAP:-tap0}"

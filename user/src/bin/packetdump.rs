@@ -1,16 +1,16 @@
-#![no_std]
-#![no_main]
-
 #[macro_use]
 extern crate user_lib;
 
 use core::str;
-use user_lib::{close, mount, open, read, O_RDONLY};
+use std::process;
+use user_lib::{close, mount, open, read, write, O_RDONLY, STDOUT};
 
 const PACKETFS_TARGET: &str = "/mnt/packetfs";
 const PACKETS_PATH: &str = "/mnt/packetfs/packets";
+const STATS_PATH: &str = "/mnt/packetfs/stats";
 const MOUNT_OPTIONS: &str = "snaplen=2048,capacity=256";
 const READ_BUF_SIZE: usize = 512;
+const STATS_BUF_SIZE: usize = 2048;
 const HEX_BYTES_PER_LINE: usize = 32;
 const PCAP_GLOBAL_HEADER_LEN: usize = 24;
 const PCAP_RECORD_HEADER_LEN: usize = 16;
@@ -18,14 +18,18 @@ const TARGET_RECORDS: usize = 1;
 const MAX_EXPORT_BYTES: usize = 64 * 1024;
 const PCAP_MAGIC_LE: [u8; 4] = [0xd4, 0xc3, 0xb2, 0xa1];
 
-#[no_mangle]
-fn main() -> i32 {
+fn main() {
+    process::exit(run());
+}
+
+fn run() -> i32 {
     let rc = mount("packetfs", PACKETFS_TARGET, MOUNT_OPTIONS);
     if rc < 0 {
         eprintln!("packetfs mount failed: {}", rc);
         return 1;
     }
     println!("packetfs mount success: {}", PACKETFS_TARGET);
+    inject_demo_rx_frame();
 
     let fd = open(PACKETS_PATH, O_RDONLY);
     if fd < 0 {
@@ -71,7 +75,10 @@ fn main() -> i32 {
             return 1;
         }
         if n == 0 {
-            eprintln!("{} returned EOF before a complete PCAP record was exported", PACKETS_PATH);
+            eprintln!(
+                "{} returned EOF before a complete PCAP record was exported",
+                PACKETS_PATH
+            );
             let _ = close(fd as usize);
             return 1;
         }
@@ -91,7 +98,67 @@ fn main() -> i32 {
         eprintln!("{} close failed: {}", PACKETS_PATH, rc);
         return 1;
     }
+    if dump_stats() < 0 {
+        return 1;
+    }
     0
+}
+
+fn dump_stats() -> isize {
+    let fd = open(STATS_PATH, O_RDONLY);
+    if fd < 0 {
+        eprintln!("{} open failed: {}", STATS_PATH, fd);
+        return -1;
+    }
+
+    let mut buf = [0u8; STATS_BUF_SIZE];
+    let mut used = 0usize;
+    loop {
+        if used == buf.len() {
+            eprintln!("{} output exceeds {} bytes", STATS_PATH, STATS_BUF_SIZE);
+            let _ = close(fd as usize);
+            return -1;
+        }
+        let n = read(fd as usize, &mut buf[used..]);
+        if n < 0 {
+            eprintln!("{} read failed: {}", STATS_PATH, n);
+            let _ = close(fd as usize);
+            return -1;
+        }
+        if n == 0 {
+            break;
+        }
+        used += n as usize;
+    }
+
+    let _ = write(STDOUT, &buf[..used]);
+    let rc = close(fd as usize);
+    if rc < 0 {
+        eprintln!("{} close failed: {}", STATS_PATH, rc);
+        return -1;
+    }
+    0
+}
+
+#[cfg(not(target_arch = "riscv64"))]
+fn inject_demo_rx_frame() {
+    let frame = demo_frame();
+    let result = kernel::net::inject_rx_frame_for_test(&frame);
+    println!("host demo rx submit: {:?}", result);
+}
+
+#[cfg(target_arch = "riscv64")]
+fn inject_demo_rx_frame() {}
+
+#[cfg(not(target_arch = "riscv64"))]
+fn demo_frame() -> [u8; 60] {
+    let mut frame = [0u8; 60];
+    frame[..6].copy_from_slice(&[0xff; 6]);
+    frame[6..12].copy_from_slice(&[0x02, 0x00, 0x00, 0x00, 0x00, 0x01]);
+    frame[12..14].copy_from_slice(&0x88b5u16.to_be_bytes());
+    let payload = b"packetfs-host-demo-frame";
+    frame[14..14 + payload.len()].copy_from_slice(payload);
+    frame
 }
 
 struct PcapParser {
@@ -144,8 +211,7 @@ impl PcapParser {
             let end = self.global_len + bytes.len();
             self.global_header[self.global_len..end].copy_from_slice(bytes);
             self.global_len = end;
-            if self.global_len == PCAP_GLOBAL_HEADER_LEN
-                && self.global_header[..4] != PCAP_MAGIC_LE
+            if self.global_len == PCAP_GLOBAL_HEADER_LEN && self.global_header[..4] != PCAP_MAGIC_LE
             {
                 return Err("invalid little-endian PCAP magic");
             }

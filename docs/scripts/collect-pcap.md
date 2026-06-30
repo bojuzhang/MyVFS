@@ -2,7 +2,7 @@
 
 ## 文件职责
 
-从 QEMU 串口日志中提取 `packetdump` 输出的 PCAP hex，恢复为 `cap.pcap`。
+从 demo 日志中提取 `packetdump` 输出的 PCAP hex，恢复为 `cap.pcap` 或指定输出路径。
 
 ## 输入格式
 

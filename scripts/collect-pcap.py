@@ -50,7 +50,7 @@ def decode_pcap(hex_text: str) -> bytes:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("log", nargs="?", help="QEMU serial log, or stdin when omitted")
+    parser.add_argument("log", nargs="?", help="demo log, or stdin when omitted")
     parser.add_argument("-o", "--output", default="cap.pcap", help="output PCAP path")
     parser.add_argument("--tcpdump", action="store_true", help="run tcpdump -r after writing")
     args = parser.parse_args()

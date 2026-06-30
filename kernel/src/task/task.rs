@@ -1,4 +1,4 @@
-use crate::fs::FdTable;
+use crate::fs::{self, FdTable, FileHandle, OpenFlags};
 use crate::sync::Mutex;
 use crate::task::id::PidHandle;
 
@@ -21,7 +21,7 @@ impl TaskControlBlock {
         Self {
             pid,
             task_status: Mutex::new(TaskStatus::Ready),
-            fd_table: Mutex::new(FdTable::new()),
+            fd_table: Mutex::new(fd_table_with_stdio()),
         }
     }
 
@@ -37,4 +37,27 @@ impl TaskControlBlock {
             .map(|guard| *guard)
             .unwrap_or(TaskStatus::Exited)
     }
+}
+
+fn fd_table_with_stdio() -> FdTable {
+    let mut table = FdTable::new();
+    let _ = table.alloc(FileHandle {
+        file: fs::stdin(),
+        flags: OpenFlags::RDONLY,
+        offset: 0,
+        debug_path: "stdin".to_string(),
+    });
+    let _ = table.alloc(FileHandle {
+        file: fs::stdout(),
+        flags: OpenFlags::WRONLY,
+        offset: 0,
+        debug_path: "stdout".to_string(),
+    });
+    let _ = table.alloc(FileHandle {
+        file: fs::stdout(),
+        flags: OpenFlags::WRONLY,
+        offset: 0,
+        debug_path: "stderr".to_string(),
+    });
+    table
 }
