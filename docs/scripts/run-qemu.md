@@ -32,10 +32,10 @@ qemu-system-riscv64 \
 
 ## 与 packetfs 的关系
 
-host demo 会在进程内向 `virtio_net` 注入一帧示例 Ethernet frame，再通过 `/mnt/packetfs/packets` 读取 PCAP。QEMU 模式仍依赖 guest virtio-net RX 能收到 host frame。
+host demo 会在进程内向 `virtio_net` 注入 3 帧示例 Ethernet frame，再通过 `/mnt/packetfs/packets` 多次读取 PCAP。QEMU 模式仍依赖 guest virtio-net RX 能收到 host frame。
 
 ## 测试点
 
-- `packetfs mount success` 出现在输出中。
+- 挂载、目录项、写保护、单读者、umount 等 VFS 管理输出完整出现。
 - `PCAP_BEGIN` 到 `PCAP_END` 之间能恢复合法 PCAP。
-- stats 中 `captured_packets > 0`。
+- stats 中 `captured_packets=3` 且 `read_packets=3`。

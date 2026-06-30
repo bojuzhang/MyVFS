@@ -2,7 +2,9 @@ use core::fmt::{self, Write};
 
 pub mod syscall;
 
-pub use syscall::{close, exit, getdents, mount, open, read, stat, umount, write, Stat, O_RDONLY};
+pub use syscall::{
+    close, exit, getdents, mount, open, read, stat, umount, write, Stat, O_RDONLY, O_WRONLY,
+};
 
 pub const STDIN: usize = 0;
 pub const STDOUT: usize = 1;
