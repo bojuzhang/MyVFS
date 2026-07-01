@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use crate::sync::Mutex;
 
@@ -18,8 +18,10 @@ pub struct RamInode {
     pub id: u64,
     pub name: String,
     pub kind: FileType,
+    pub parent: Weak<RamInode>,
     pub next_inode_id: Arc<AtomicU64>,
     pub inner: Arc<Mutex<RamInodeInner>>,
+    self_ref: Weak<RamInode>,
 }
 
 pub enum RamInodeInner {
@@ -36,14 +38,17 @@ pub struct RamFile {
 impl RamFs {
     pub fn new() -> Self {
         let next_inode_id = Arc::new(AtomicU64::new(2));
+        let root = Arc::new_cyclic(|self_ref| RamInode {
+            id: 1,
+            name: "/".to_string(),
+            kind: FileType::Directory,
+            parent: self_ref.clone(),
+            next_inode_id: next_inode_id.clone(),
+            inner: Arc::new(Mutex::new(RamInodeInner::Directory(BTreeMap::new()))),
+            self_ref: self_ref.clone(),
+        });
         Self {
-            root: Arc::new(RamInode {
-                id: 1,
-                name: "/".to_string(),
-                kind: FileType::Directory,
-                next_inode_id: next_inode_id.clone(),
-                inner: Arc::new(Mutex::new(RamInodeInner::Directory(BTreeMap::new()))),
-            }),
+            root,
             next_inode_id,
         }
     }
@@ -110,13 +115,17 @@ impl Inode for RamInode {
         if name.is_empty() || name == "." {
             return Err(FsError::Einval);
         }
-        if name == ".." {
-            return Err(FsError::Enoent);
-        }
 
         let inner = self.inner.lock().map_err(|_| FsError::Eio)?;
         match &*inner {
             RamInodeInner::Directory(children) => {
+                if name == ".." {
+                    return self
+                        .parent
+                        .upgrade()
+                        .map(|parent| parent as DynInode)
+                        .ok_or(FsError::Eio);
+                }
                 children.get(name).cloned().ok_or(FsError::Enoent)
             }
             RamInodeInner::File(_) => Err(FsError::Enotdir),
@@ -127,6 +136,7 @@ impl Inode for RamInode {
         let inner = self.inner.lock().map_err(|_| FsError::Eio)?;
         match &*inner {
             RamInodeInner::Directory(children) => {
+                let parent = self.parent.upgrade().ok_or(FsError::Eio)?;
                 let mut entries = Vec::with_capacity(children.len() + 2);
                 entries.push(DirEntry {
                     name: ".".to_string(),
@@ -135,7 +145,7 @@ impl Inode for RamInode {
                 });
                 entries.push(DirEntry {
                     name: "..".to_string(),
-                    inode_id: self.id,
+                    inode_id: parent.id,
                     file_type: FileType::Directory,
                 });
                 for (name, inode) in children {
@@ -218,10 +228,13 @@ impl RamInode {
             return Err(FsError::Ebusy);
         }
 
-        let inode = Arc::new(RamInode {
+        let parent = self.self_ref.upgrade().ok_or(FsError::Eio)?;
+        let parent = Arc::downgrade(&parent);
+        let inode = Arc::new_cyclic(|self_ref| RamInode {
             id: self.next_inode_id.fetch_add(1, Ordering::Relaxed),
             name: name.to_string(),
             kind,
+            parent: parent.clone(),
             next_inode_id: self.next_inode_id.clone(),
             inner: Arc::new(Mutex::new(match kind {
                 FileType::Directory => RamInodeInner::Directory(BTreeMap::new()),
@@ -229,6 +242,7 @@ impl RamInode {
                     RamInodeInner::File(Vec::new())
                 }
             })),
+            self_ref: self_ref.clone(),
         });
         children.insert(name.to_string(), inode.clone() as DynInode);
         Ok(inode)
@@ -239,8 +253,10 @@ impl RamInode {
             id: self.id,
             name: self.name.clone(),
             kind: self.kind,
+            parent: self.parent.clone(),
             next_inode_id: self.next_inode_id.clone(),
             inner: self.inner.clone(),
+            self_ref: self.self_ref.clone(),
         })
     }
 }
