@@ -2,7 +2,7 @@
 
 ## 文件职责
 
-读取 `/mnt/packetfs/stats` 并打印统计文本。
+读取 packetfs 默认 `/stats` 路径并打印统计文本。
 
 ## 核心流程
 
@@ -28,3 +28,4 @@ close(fd)
 ## 与 packetfs 的关系
 
 `packetstat` 展示文件系统内部状态，证明 packetfs 不只是一个单文件 read wrapper，而是在维护自己的状态。
+默认挂载点和 stats 路径引用 packetfs 导出的常量，避免用户程序重复维护 `/mnt/packetfs`。

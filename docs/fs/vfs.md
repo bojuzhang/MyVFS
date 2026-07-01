@@ -37,6 +37,9 @@ pub trait Inode: Send + Sync {
     fn metadata(&self) -> FsResult<Metadata>;
     fn lookup(&self, name: &str) -> FsResult<DynInode>;
     fn readdir(&self) -> FsResult<Vec<DirEntry>>;
+    fn mkdir(&self, name: &str) -> FsResult<DynInode> {
+        Err(FsError::Erofs)
+    }
     fn open(&self, flags: OpenFlags) -> FsResult<DynFile>;
 
     fn read_at(&self, offset: usize, buf: &mut [u8]) -> FsResult<usize>;
@@ -48,6 +51,7 @@ pub trait Inode: Send + Sync {
 
 - 目录 inode 实现 `lookup/readdir`。
 - 普通文件 inode 对 `lookup/readdir` 返回 `ENOTDIR`。
+- `mkdir` 是 VFS 通用目录创建钩子；默认返回 `EROFS`，ramfs 覆写它，packetfs 保持只读。
 - `read_at/write_at` 主要给 ramfs；`packetfs` 的 `/packets` 以 `File::read` 维护流状态。
 
 ## trait File

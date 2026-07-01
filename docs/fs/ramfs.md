@@ -13,7 +13,7 @@
 ```rust
 pub struct RamFs {
     pub root: Arc<RamInode>,
-    pub next_inode_id: AtomicU64,
+    pub next_inode_id: Arc<AtomicU64>,
 }
 ```
 
@@ -22,6 +22,7 @@ pub struct RamInode {
     pub id: u64,
     pub name: String,
     pub kind: FileType,
+    pub next_inode_id: Arc<AtomicU64>,
     pub inner: Arc<Mutex<RamInodeInner>>,
 }
 ```
@@ -54,6 +55,7 @@ pub struct RamFile {
 - 内存目录树。
 - 文件内容 Vec。
 - inode id。
+- 每个目录 inode 持有共享 inode id 分配器，使 VFS `mkdir` 可以从父 inode 创建子目录。
 - 文件大小。
 - 每个打开文件的 offset。
 
@@ -68,6 +70,12 @@ pub struct RamFile {
 目录 `readdir()`：
 
 1. 返回 `.`, `..` 和 children。
+
+目录 `mkdir(name)`：
+
+1. 检查名字合法且当前 inode 是目录。
+2. 使用共享 inode id 分配器创建目录 inode。
+3. 插入 children；名字已存在返回 `EBUSY`。
 
 文件 `read_at()`：
 

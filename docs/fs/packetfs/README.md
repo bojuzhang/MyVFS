@@ -17,6 +17,14 @@
 
 ## 下层入口
 
+VFS 初始化通过 packetfs API 准备默认挂载点：
+
+```rust
+packetfs::api::prepare_default_mountpoint()
+```
+
+默认挂载点和默认文件路径由 packetfs API 维护并导出，VFS 初始化代码不硬编码 `/mnt/packetfs`。
+
 virtio-net 收到 Ethernet frame 后只调用：
 
 ```rust

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 将 packetfs 默认挂载点从 `fs::init()` 的硬编码目录创建迁出，改由 packetfs API 维护默认路径并通过 VFS `mkdir_path` 准备目录；同步新增 `sys_mkdir`/用户态 `mkdir` wrapper。
 - 将 cwd 从 `PathResolver` 的隐式 root 默认迁移为 `TaskControlBlock` 进程属性；VFS 路径解析现在从 `current_task()` 取得 cwd，并让 `PathResolver` 接收 root、cwd 和挂载表引用。
 - 将 VFS 卸载流程改为通过 `FileSystem::umount()` 动态分发，`MountTable` 不再按 `packetfs` 名字特判卸载逻辑。
 - 明确内核 crate 当前允许使用 `std`，但内核共享状态锁必须使用 `kernel/src/sync/` 的自写实现。

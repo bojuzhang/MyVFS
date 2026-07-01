@@ -34,13 +34,11 @@ pub fn init() -> FsResult<()> {
     }
 
     let root_fs = Arc::new(RamFs::new());
-    let mnt = root_fs.create_dir(&root_fs.root, "mnt")?;
-    root_fs.create_dir(&mnt, "packetfs")?;
-
     let mount_table = Arc::new(MountTable::new(root_fs.root_inode()));
     ROOT_FS.set(root_fs).map_err(|_| FsError::Ebusy)?;
     MOUNT_TABLE.set(mount_table).map_err(|_| FsError::Ebusy)?;
 
+    packetfs::prepare_default_mountpoint()?;
     let packetfs = packetfs::make_packetfs(packetfs::PacketFsConfig::default())?;
     register_filesystem(packetfs)?;
     Ok(())
@@ -77,8 +75,17 @@ pub fn umount_fs(target: &str) -> FsResult<()> {
     mount_table()?.umount(target)
 }
 
+pub fn mkdir_path(path: &str) -> FsResult<()> {
+    let (parent, name) = resolver_with_root_fallback()?.resolve_parent(path)?;
+    if parent.metadata()?.file_type != FileType::Directory {
+        return Err(FsError::Enotdir);
+    }
+    parent.mkdir(&name)?;
+    Ok(())
+}
+
 pub fn stat_path(path: &str) -> FsResult<Metadata> {
-    resolver()?.resolve(path)?.metadata()
+    resolver_with_root_fallback()?.resolve(path)?.metadata()
 }
 
 pub fn read_dir_path(path: &str) -> FsResult<Vec<DirEntry>> {
@@ -116,6 +123,15 @@ fn resolver() -> FsResult<PathResolver<'static>> {
     let task = current_task().ok_or(FsError::Eio)?;
     let root = root_inode()?;
     let cwd = task.cwd()?;
+    Ok(PathResolver::new(root, cwd, mount_table_ref()?))
+}
+
+fn resolver_with_root_fallback() -> FsResult<PathResolver<'static>> {
+    let root = root_inode()?;
+    let cwd = match current_task() {
+        Some(task) => task.cwd()?,
+        None => root.clone(),
+    };
     Ok(PathResolver::new(root, cwd, mount_table_ref()?))
 }
 

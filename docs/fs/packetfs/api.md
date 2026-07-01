@@ -29,7 +29,12 @@ pub enum SubmitResult {
 ## 需要实现的接口
 
 ```rust
+pub const DEFAULT_MOUNTPOINT: &str = "/mnt/packetfs";
+pub const DEFAULT_PACKETS_PATH: &str = "/mnt/packetfs/packets";
+pub const DEFAULT_STATS_PATH: &str = "/mnt/packetfs/stats";
+
 pub fn make_packetfs(config: PacketFsConfig) -> FsResult<Arc<dyn FileSystem>>;
+pub fn prepare_default_mountpoint() -> FsResult<()>;
 pub fn submit_rx_frame(frame: &[u8], meta: RxMeta) -> SubmitResult;
 pub fn stats_snapshot() -> FsResult<StatsSnapshot>;
 ```
@@ -53,6 +58,8 @@ static ACTIVE_PACKETFS: OnceLock<Mutex<Option<Arc<PacketFsInner>>>>;
 其中 `OnceLock` 来自 `std`，`Mutex` 来自 `crate::sync` 的自写锁实现。
 
 `begin_active_umount()` 只由 `PacketFs::umount()` 触发，VFS mount table 不直接按名字调用 packetfs 私有 API。
+
+默认挂载点路径由 packetfs API 维护。`fs::init()` 不硬编码 `/mnt/packetfs`，只调用 `prepare_default_mountpoint()`；该函数根据 `DEFAULT_MOUNTPOINT` 逐级调用 VFS 的 `mkdir_path()` 创建目录，遇到已存在目录时继续，遇到已存在非目录时报错。
 
 ## submit_rx_frame 流程
 

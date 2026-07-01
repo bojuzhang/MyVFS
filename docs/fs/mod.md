@@ -43,6 +43,7 @@ pub use fd::{FdTable, FileHandle, OpenFlags};
 - `pub fn open_path(path: &str, flags: OpenFlags) -> FsResult<DynFile>`
 - `pub fn mount_fs(fs_name: &str, target: &str, options: &str) -> FsResult<()>`
 - `pub fn umount_fs(target: &str) -> FsResult<()>`
+- `pub fn mkdir_path(path: &str) -> FsResult<()>`
 - `pub fn stat_path(path: &str) -> FsResult<Metadata>`
 - `pub fn read_dir_path(path: &str) -> FsResult<Vec<DirEntry>>`
 
@@ -51,11 +52,16 @@ pub use fd::{FdTable, FileHandle, OpenFlags};
 `fs::init()`：
 
 1. 创建 `RamFs` 作为 `/`。
-2. 在 ramfs 中创建 `/mnt`。
-3. 在 ramfs 中创建 `/mnt/packetfs` 作为挂载点。
-4. 初始化 `MountTable`，根节点指向 ramfs root。
-5. 注册 `packetfs` 文件系统类型。
-6. 初始化 stdin/stdout 文件对象所需状态。
+2. 初始化 `MountTable`，根节点指向 ramfs root。
+3. 调用 `packetfs::prepare_default_mountpoint()`，让 packetfs 根据自己的默认挂载点逐级创建目录。
+4. 注册 `packetfs` 文件系统类型。
+5. 初始化 stdin/stdout 文件对象所需状态。
+
+`mkdir_path(path)`：
+
+1. 通过 `PathResolver::resolve_parent()` 找到父目录。
+2. 调用父 inode 的 `mkdir(name)`。
+3. 初始化阶段如果还没有当前任务，则以 root 作为 cwd；普通 syscall 阶段仍从当前任务 cwd 解析。
 
 ## 错误处理
 

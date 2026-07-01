@@ -13,6 +13,7 @@
 ```rust
 pub fn sys_mount(fs_name: *const u8, target: *const u8, options: *const u8) -> isize;
 pub fn sys_umount(target: *const u8) -> isize;
+pub fn sys_mkdir(path: *const u8) -> isize;
 pub fn sys_open(path: *const u8, flags: u32) -> isize;
 pub fn sys_close(fd: usize) -> isize;
 pub fn sys_read(fd: usize, buf: *mut u8, len: usize) -> isize;
@@ -26,7 +27,7 @@ pub fn sys_getdents(fd: usize, buf: *mut u8, len: usize) -> isize;
 - `translated_str()`：复制用户态字符串。
 - `translated_byte_buffer()`：翻译用户缓冲区。
 - 当前任务的 `FdTable`。
-- `fs::mount_fs/open_path/stat_path/read_dir_path`。
+- `fs::mount_fs/mkdir_path/open_path/stat_path/read_dir_path`。
 
 ## sys_mount 流程
 
@@ -42,6 +43,12 @@ pub fn sys_getdents(fd: usize, buf: *mut u8, len: usize) -> isize;
 4. 创建 `FileHandle`。
 5. 插入当前任务 fd table。
 6. 返回 fd。
+
+## sys_mkdir 流程
+
+1. 复制 path。
+2. 调用 `fs::mkdir_path(path)`。
+3. 成功返回 0，失败返回负 errno。
 
 ## sys_read 流程
 

@@ -1,11 +1,12 @@
 #[macro_use]
 extern crate user_lib;
 
+use kernel::packetfs::{DEFAULT_MOUNTPOINT, DEFAULT_STATS_PATH};
 use std::process;
 use user_lib::{close, mount, open, read, write, O_RDONLY, STDOUT};
 
-const PACKETFS_TARGET: &str = "/mnt/packetfs";
-const STATS_PATH: &str = "/mnt/packetfs/stats";
+const PACKETFS_TARGET: &str = DEFAULT_MOUNTPOINT;
+const STATS_PATH: &str = DEFAULT_STATS_PATH;
 const MOUNT_OPTIONS: &str = "snaplen=2048,capacity=256";
 const STATS_BUF_SIZE: usize = 2048;
 

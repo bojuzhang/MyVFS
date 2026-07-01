@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use crate::fs::{FileSystem, FsError, FsResult};
+use crate::fs::{self, FileSystem, FileType, FsError, FsResult};
 use crate::sync::{Mutex, TryLockError};
 
 use super::fs::{lock_unpoisoned, PacketFs, PacketFsConfig, PacketFsInner};
@@ -21,10 +21,18 @@ pub enum SubmitResult {
     Truncated,
 }
 
+pub const DEFAULT_MOUNTPOINT: &str = "/mnt/packetfs";
+pub const DEFAULT_PACKETS_PATH: &str = "/mnt/packetfs/packets";
+pub const DEFAULT_STATS_PATH: &str = "/mnt/packetfs/stats";
+
 static ACTIVE_PACKETFS: OnceLock<Mutex<Option<Arc<PacketFsInner>>>> = OnceLock::new();
 
 pub fn make_packetfs(config: PacketFsConfig) -> FsResult<Arc<dyn FileSystem>> {
     Ok(Arc::new(PacketFs::new(config)?))
+}
+
+pub fn prepare_default_mountpoint() -> FsResult<()> {
+    ensure_dir_tree(DEFAULT_MOUNTPOINT)
 }
 
 pub fn submit_rx_frame(frame: &[u8], meta: RxMeta) -> SubmitResult {
@@ -121,5 +129,31 @@ fn active_instance_nonblocking() -> Option<Arc<PacketFsInner>> {
         Ok(active) => active.clone(),
         Err(TryLockError::Poisoned(err)) => err.into_inner().clone(),
         Err(TryLockError::WouldBlock) => None,
+    }
+}
+
+fn ensure_dir_tree(path: &str) -> FsResult<()> {
+    let parsed = fs::path::Path::parse(path)?;
+    if !parsed.is_absolute {
+        return Err(FsError::Einval);
+    }
+
+    let mut current = String::new();
+    for component in parsed.components {
+        current.push('/');
+        current.push_str(&component);
+        ensure_dir(&current)?;
+    }
+    Ok(())
+}
+
+fn ensure_dir(path: &str) -> FsResult<()> {
+    match fs::mkdir_path(path) {
+        Ok(()) => Ok(()),
+        Err(FsError::Ebusy) => match fs::stat_path(path)?.file_type {
+            FileType::Directory => Ok(()),
+            _ => Err(FsError::Enotdir),
+        },
+        Err(err) => Err(err),
     }
 }

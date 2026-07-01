@@ -2,7 +2,7 @@
 
 ## 额外说明
 
-syscall inline asm 和基础 wrapper 可照搬 rCore。新增 mount/stat/getdents wrapper。
+syscall inline asm 和基础 wrapper 可照搬 rCore。新增 mount/mkdir/stat/getdents wrapper。
 
 ## 文件职责
 
@@ -13,6 +13,7 @@ syscall inline asm 和基础 wrapper 可照搬 rCore。新增 mount/stat/getdent
 ```rust
 pub fn mount(fs_name: &str, target: &str, options: &str) -> isize;
 pub fn umount(target: &str) -> isize;
+pub fn mkdir(path: &str) -> isize;
 pub fn open(path: &str, flags: u32) -> isize;
 pub fn close(fd: usize) -> isize;
 pub fn read(fd: usize, buf: &mut [u8]) -> isize;

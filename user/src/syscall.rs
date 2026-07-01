@@ -7,6 +7,7 @@ pub const O_RDONLY: u32 = 0;
 pub const O_WRONLY: u32 = 1;
 pub const O_RDWR: u32 = 2;
 
+pub const SYS_MKDIR: usize = 34;
 pub const SYS_UMOUNT: usize = 39;
 pub const SYS_MOUNT: usize = 40;
 pub const SYS_OPEN: usize = 56;
@@ -175,6 +176,15 @@ pub fn umount(target: &str) -> isize {
         Err(err) => return err,
     };
     syscall1(SYS_UMOUNT, target_ptr as usize)
+}
+
+pub fn mkdir(path: &str) -> isize {
+    let mut path_buf = [0u8; 256];
+    let path_ptr = match copy_cstr(path, &mut path_buf) {
+        Ok(ptr) => ptr,
+        Err(err) => return err,
+    };
+    syscall1(SYS_MKDIR, path_ptr as usize)
 }
 
 pub fn open(path: &str, flags: u32) -> isize {

@@ -21,10 +21,14 @@ pub mod stats;
 ```rust
 pub use api::{
     make_packetfs,
+    prepare_default_mountpoint,
     submit_rx_frame,
     stats_snapshot,
     RxMeta,
     SubmitResult,
+    DEFAULT_MOUNTPOINT,
+    DEFAULT_PACKETS_PATH,
+    DEFAULT_STATS_PATH,
 };
 
 pub use fs::{PacketFs, PacketFsConfig};

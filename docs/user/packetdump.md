@@ -2,7 +2,7 @@
 
 ## 文件职责
 
-演示 `packetfs` 的 VFS 行为，并读取 `/mnt/packetfs/packets`，把 PCAP 字节流通过串口以 hex 形式导出给 host。
+演示 `packetfs` 的 VFS 行为，并读取 packetfs 默认 `/packets` 路径，把 PCAP 字节流通过串口以 hex 形式导出给 host。
 
 ## 核心流程
 
@@ -47,3 +47,4 @@ stat("/mnt/packetfs")
 ## 与 packetfs 的关系
 
 这是最终展示的主程序，证明用户态通过普通 VFS syscall 完成挂载、目录读取、文件 metadata 查询、只读访问控制、单读者管理、PCAP 流读取和 stats 文件读取。
+默认挂载点和两个文件路径引用 packetfs 导出的常量，避免在用户程序里重复维护 `/mnt/packetfs`。

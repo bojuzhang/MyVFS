@@ -11,13 +11,14 @@ use super::vfs::{DynFile, DynInode, File, FileSystem, Inode, SeekFrom, UserBuffe
 
 pub struct RamFs {
     pub root: Arc<RamInode>,
-    pub next_inode_id: AtomicU64,
+    pub next_inode_id: Arc<AtomicU64>,
 }
 
 pub struct RamInode {
     pub id: u64,
     pub name: String,
     pub kind: FileType,
+    pub next_inode_id: Arc<AtomicU64>,
     pub inner: Arc<Mutex<RamInodeInner>>,
 }
 
@@ -34,14 +35,16 @@ pub struct RamFile {
 
 impl RamFs {
     pub fn new() -> Self {
+        let next_inode_id = Arc::new(AtomicU64::new(2));
         Self {
             root: Arc::new(RamInode {
                 id: 1,
                 name: "/".to_string(),
                 kind: FileType::Directory,
+                next_inode_id: next_inode_id.clone(),
                 inner: Arc::new(Mutex::new(RamInodeInner::Directory(BTreeMap::new()))),
             }),
-            next_inode_id: AtomicU64::new(2),
+            next_inode_id,
         }
     }
 
@@ -59,32 +62,7 @@ impl RamFs {
         name: &str,
         kind: FileType,
     ) -> FsResult<Arc<RamInode>> {
-        if name.is_empty() || name == "." || name == ".." || name.contains('/') {
-            return Err(FsError::Einval);
-        }
-
-        let mut inner = parent.inner.lock().map_err(|_| FsError::Eio)?;
-        let children = match &mut *inner {
-            RamInodeInner::Directory(children) => children,
-            RamInodeInner::File(_) => return Err(FsError::Enotdir),
-        };
-        if children.contains_key(name) {
-            return Err(FsError::Ebusy);
-        }
-
-        let inode = Arc::new(RamInode {
-            id: self.next_inode_id.fetch_add(1, Ordering::Relaxed),
-            name: name.to_string(),
-            kind,
-            inner: Arc::new(Mutex::new(match kind {
-                FileType::Directory => RamInodeInner::Directory(BTreeMap::new()),
-                FileType::Regular | FileType::Pipe | FileType::CharDevice => {
-                    RamInodeInner::File(Vec::new())
-                }
-            })),
-        });
-        children.insert(name.to_string(), inode.clone() as DynInode);
-        Ok(inode)
+        parent.create_child(name, kind)
     }
 }
 
@@ -174,6 +152,10 @@ impl Inode for RamInode {
         }
     }
 
+    fn mkdir(&self, name: &str) -> FsResult<DynInode> {
+        Ok(self.create_child(name, FileType::Directory)?)
+    }
+
     fn open(&self, flags: OpenFlags) -> FsResult<DynFile> {
         if flags.contains(OpenFlags::DIRECTORY) && self.kind != FileType::Directory {
             return Err(FsError::Enotdir);
@@ -222,11 +204,42 @@ impl Inode for RamInode {
 }
 
 impl RamInode {
+    fn create_child(&self, name: &str, kind: FileType) -> FsResult<Arc<RamInode>> {
+        if name.is_empty() || name == "." || name == ".." || name.contains('/') {
+            return Err(FsError::Einval);
+        }
+
+        let mut inner = self.inner.lock().map_err(|_| FsError::Eio)?;
+        let children = match &mut *inner {
+            RamInodeInner::Directory(children) => children,
+            RamInodeInner::File(_) => return Err(FsError::Enotdir),
+        };
+        if children.contains_key(name) {
+            return Err(FsError::Ebusy);
+        }
+
+        let inode = Arc::new(RamInode {
+            id: self.next_inode_id.fetch_add(1, Ordering::Relaxed),
+            name: name.to_string(),
+            kind,
+            next_inode_id: self.next_inode_id.clone(),
+            inner: Arc::new(Mutex::new(match kind {
+                FileType::Directory => RamInodeInner::Directory(BTreeMap::new()),
+                FileType::Regular | FileType::Pipe | FileType::CharDevice => {
+                    RamInodeInner::File(Vec::new())
+                }
+            })),
+        });
+        children.insert(name.to_string(), inode.clone() as DynInode);
+        Ok(inode)
+    }
+
     fn clone_shallow(&self) -> FsResult<Self> {
         Ok(Self {
             id: self.id,
             name: self.name.clone(),
             kind: self.kind,
+            next_inode_id: self.next_inode_id.clone(),
             inner: self.inner.clone(),
         })
     }

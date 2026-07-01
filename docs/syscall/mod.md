@@ -21,18 +21,20 @@ SYS_OPEN
 SYS_CLOSE
 SYS_READ
 SYS_WRITE
+SYS_MKDIR
 SYS_STAT
 SYS_GETDENTS
 SYS_MOUNT
 SYS_UMOUNT
 ```
 
-其中 `SYS_MOUNT`、`SYS_UMOUNT`、`SYS_STAT`、`SYS_GETDENTS` 若 rCore 基线没有，需要新增。
+其中 `SYS_MOUNT`、`SYS_UMOUNT`、`SYS_MKDIR`、`SYS_STAT`、`SYS_GETDENTS` 若 rCore 基线没有，需要新增。本项目内 `SYS_MKDIR = 34`。
 
 ## 核心流程
 
 ```rust
 match syscall_id {
+    SYS_MKDIR => fs::sys_mkdir(args[0]),
     SYS_OPEN => fs::sys_open(args[0], args[1]),
     SYS_READ => fs::sys_read(args[0], args[1], args[2]),
     ...

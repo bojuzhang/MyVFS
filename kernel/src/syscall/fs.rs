@@ -25,6 +25,15 @@ pub fn sys_umount(target: *const u8) -> isize {
     result.map(|_| 0).unwrap_or_else(|err| err.as_isize())
 }
 
+pub fn sys_mkdir(path: *const u8) -> isize {
+    let token = current_user_token();
+    let result = (|| {
+        let path = translated_str(token, path)?;
+        vfs::mkdir_path(&path)
+    })();
+    result.map(|_| 0).unwrap_or_else(|err| err.as_isize())
+}
+
 pub fn sys_open(path: *const u8, flags: u32) -> isize {
     let token = current_user_token();
     let result = (|| {

@@ -3,14 +3,15 @@ extern crate user_lib;
 
 use core::fmt;
 use core::str;
+use kernel::packetfs::{DEFAULT_MOUNTPOINT, DEFAULT_PACKETS_PATH, DEFAULT_STATS_PATH};
 use std::process;
 use user_lib::{
     close, getdents, mount, open, read, stat, umount, write, Stat, O_RDONLY, O_WRONLY, STDOUT,
 };
 
-const PACKETFS_TARGET: &str = "/mnt/packetfs";
-const PACKETS_PATH: &str = "/mnt/packetfs/packets";
-const STATS_PATH: &str = "/mnt/packetfs/stats";
+const PACKETFS_TARGET: &str = DEFAULT_MOUNTPOINT;
+const PACKETS_PATH: &str = DEFAULT_PACKETS_PATH;
+const STATS_PATH: &str = DEFAULT_STATS_PATH;
 const MOUNT_OPTIONS: &str = "snaplen=2048,capacity=256";
 const READ_BUF_SIZE: usize = 32;
 const STATS_BUF_SIZE: usize = 2048;

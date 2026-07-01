@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::error::FsResult;
+use super::error::{FsError, FsResult};
 use super::fd::OpenFlags;
 use super::stat::{DirEntry, Metadata};
 
@@ -66,6 +66,9 @@ pub trait Inode: Send + Sync {
     fn metadata(&self) -> FsResult<Metadata>;
     fn lookup(&self, name: &str) -> FsResult<DynInode>;
     fn readdir(&self) -> FsResult<Vec<DirEntry>>;
+    fn mkdir(&self, _name: &str) -> FsResult<DynInode> {
+        Err(FsError::Erofs)
+    }
     fn open(&self, flags: OpenFlags) -> FsResult<DynFile>;
 
     fn read_at(&self, offset: usize, buf: &mut [u8]) -> FsResult<usize>;

@@ -6,7 +6,7 @@
 
 ## 文件职责
 
-提供 `print`/`println`、`exit` 调用和基础库导出。
+提供 `print`/`println`、`exit` 调用和基础 syscall wrapper 导出，包括 `mkdir`。
 
 ## packetfs 关系
 

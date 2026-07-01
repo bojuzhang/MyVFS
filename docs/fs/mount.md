@@ -53,6 +53,8 @@ impl MountTable {
 5. 调用 `FileSystem::mount(options)`。
 6. 插入 `MountEntry`。
 
+`/mnt/packetfs` 是 packetfs API 暴露的默认挂载点；`MountTable` 只接收调用方传入的 target，不维护该默认路径。
+
 `umount("/mnt/packetfs")`：
 
 1. 按 target 找到 `MountEntry`。
