@@ -10,10 +10,10 @@ pub struct Path {
     pub is_absolute: bool,
 }
 
-pub struct PathResolver {
+pub struct PathResolver<'a> {
     pub root: DynInode,
     pub cwd: DynInode,
-    pub mount_table: Arc<MountTable>,
+    pub mount_table: &'a MountTable,
 }
 
 impl Path {
@@ -48,7 +48,15 @@ impl Path {
     }
 }
 
-impl PathResolver {
+impl<'a> PathResolver<'a> {
+    pub fn new(root: DynInode, cwd: DynInode, mount_table: &'a MountTable) -> Self {
+        Self {
+            root,
+            cwd,
+            mount_table,
+        }
+    }
+
     pub fn resolve(&self, path: &str) -> FsResult<DynInode> {
         let path = Path::parse(path)?;
         let mut current = if path.is_absolute {

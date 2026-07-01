@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 将 cwd 从 `PathResolver` 的隐式 root 默认迁移为 `TaskControlBlock` 进程属性；VFS 路径解析现在从 `current_task()` 取得 cwd，并让 `PathResolver` 接收 root、cwd 和挂载表引用。
 - 将 VFS 卸载流程改为通过 `FileSystem::umount()` 动态分发，`MountTable` 不再按 `packetfs` 名字特判卸载逻辑。
 - 明确内核 crate 当前允许使用 `std`，但内核共享状态锁必须使用 `kernel/src/sync/` 的自写实现。
 - 同步 `sync` 文档：`Mutex<T>` 现在是 `SpinMutex<T>` 的项目内实现，基于 `AtomicBool` 和 `UnsafeCell`，不再包装 `std::sync::Mutex`。

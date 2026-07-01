@@ -1,4 +1,4 @@
-use crate::fs::{self, FdTable, FileHandle, OpenFlags};
+use crate::fs::{self, DynInode, FdTable, FileHandle, FileType, FsError, FsResult, OpenFlags};
 use crate::sync::Mutex;
 use crate::task::id::PidHandle;
 
@@ -14,6 +14,7 @@ pub struct TaskControlBlock {
     pub pid: PidHandle,
     pub task_status: Mutex<TaskStatus>,
     pub fd_table: Mutex<FdTable>,
+    pub cwd: Mutex<Option<DynInode>>,
 }
 
 impl TaskControlBlock {
@@ -22,6 +23,7 @@ impl TaskControlBlock {
             pid,
             task_status: Mutex::new(TaskStatus::Ready),
             fd_table: Mutex::new(fd_table_with_stdio()),
+            cwd: Mutex::new(None),
         }
     }
 
@@ -36,6 +38,22 @@ impl TaskControlBlock {
             .lock()
             .map(|guard| *guard)
             .unwrap_or(TaskStatus::Exited)
+    }
+
+    pub fn cwd(&self) -> FsResult<DynInode> {
+        let mut cwd = self.cwd.lock().map_err(|_| FsError::Eio)?;
+        if cwd.is_none() {
+            *cwd = Some(fs::root_inode()?);
+        }
+        cwd.as_ref().cloned().ok_or(FsError::Eio)
+    }
+
+    pub fn set_cwd(&self, cwd: DynInode) -> FsResult<()> {
+        if cwd.metadata()?.file_type != FileType::Directory {
+            return Err(FsError::Enotdir);
+        }
+        *self.cwd.lock().map_err(|_| FsError::Eio)? = Some(cwd);
+        Ok(())
     }
 }
 

@@ -32,6 +32,7 @@ pub use fd::{FdTable, FileHandle, OpenFlags};
 - `ROOT_FS`：根 ramfs。
 - `MOUNT_TABLE`：全局挂载表。
 - `FS_REGISTRY`：文件系统类型注册表。
+- `resolver()`：从 `current_task()` 取得当前任务 cwd，并把 root、cwd 和挂载表引用传给 `PathResolver`。
 
 这些全局状态由 `crate::sync::Mutex` 保护。当前内核 crate 允许继续使用 `std::collections`、`Arc`、`OnceLock` 等非锁能力，但不要为共享状态新增 `std::sync` 锁。
 
@@ -61,4 +62,5 @@ pub use fd::{FdTable, FileHandle, OpenFlags};
 - 重复初始化：`EBUSY`。
 - 注册重复文件系统：`EBUSY`。
 - 找不到文件系统类型：`ENODEV`。
+- 当前任务不存在或 cwd 无法取得：`EIO`。
 - 路径解析错误透传自 `path.rs`。

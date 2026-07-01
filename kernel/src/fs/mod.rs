@@ -17,6 +17,7 @@ pub use stat::{DirEntry, FileType, Metadata, Stat};
 pub use vfs::{DynFile, DynInode, File, FileSystem, Inode, SeekFrom, UserBuffer};
 
 use crate::sync::Mutex;
+use crate::task::current_task;
 
 use mount::MountTable;
 use path::PathResolver;
@@ -100,17 +101,22 @@ pub fn mount_table() -> FsResult<Arc<MountTable>> {
     MOUNT_TABLE.get().cloned().ok_or(FsError::Eio)
 }
 
+fn mount_table_ref() -> FsResult<&'static MountTable> {
+    MOUNT_TABLE
+        .get()
+        .map(|mount_table| mount_table.as_ref())
+        .ok_or(FsError::Eio)
+}
+
 fn root_fs() -> FsResult<Arc<RamFs>> {
     ROOT_FS.get().cloned().ok_or(FsError::Eio)
 }
 
-fn resolver() -> FsResult<PathResolver> {
+fn resolver() -> FsResult<PathResolver<'static>> {
+    let task = current_task().ok_or(FsError::Eio)?;
     let root = root_inode()?;
-    Ok(PathResolver {
-        root: root.clone(),
-        cwd: root,
-        mount_table: mount_table()?,
-    })
+    let cwd = task.cwd()?;
+    Ok(PathResolver::new(root, cwd, mount_table_ref()?))
 }
 
 fn registry() -> &'static Mutex<HashMap<&'static str, DynFileSystem>> {
