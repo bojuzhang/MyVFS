@@ -31,7 +31,6 @@ pub enum RamInodeInner {
 
 pub struct RamFile {
     pub inode: Arc<RamInode>,
-    pub offset: Mutex<usize>,
     pub flags: OpenFlags,
 }
 
@@ -176,7 +175,6 @@ impl Inode for RamInode {
 
         Ok(Arc::new(RamFile {
             inode: Arc::new(self.clone_shallow()?),
-            offset: Mutex::new(0),
             flags,
         }))
     }
@@ -270,27 +268,22 @@ impl File for RamFile {
         self.flags.writable()
     }
 
-    fn read(&self, mut buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn read(&self, offset: usize, mut buf: UserBuffer<'_>) -> FsResult<usize> {
         if !self.readable() {
             return Err(FsError::Eacces);
         }
-        let mut offset = self.offset.lock().map_err(|_| FsError::Eio)?;
         let mut tmp = vec![0; buf.len()];
-        let len = self.inode.read_at(*offset, &mut tmp)?;
+        let len = self.inode.read_at(offset, &mut tmp)?;
         let copied = buf.write_from_slice(&tmp[..len]);
-        *offset += copied;
         Ok(copied)
     }
 
-    fn write(&self, buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn write(&self, offset: usize, buf: UserBuffer<'_>) -> FsResult<usize> {
         if !self.writable() {
             return Err(FsError::Eacces);
         }
-        let mut offset = self.offset.lock().map_err(|_| FsError::Eio)?;
         let data = buf.to_vec();
-        let len = self.inode.write_at(*offset, &data)?;
-        *offset += len;
-        Ok(len)
+        self.inode.write_at(offset, &data)
     }
 
     fn stat(&self) -> FsResult<Metadata> {
@@ -301,15 +294,13 @@ impl File for RamFile {
         Ok(())
     }
 
-    fn seek(&self, pos: SeekFrom) -> FsResult<usize> {
+    fn seek(&self, current_offset: usize, pos: SeekFrom) -> FsResult<usize> {
         let metadata = self.inode.metadata()?;
-        let mut offset = self.offset.lock().map_err(|_| FsError::Eio)?;
         let next = match pos {
             SeekFrom::Start(pos) => pos,
-            SeekFrom::Current(delta) => apply_delta(*offset, delta)?,
+            SeekFrom::Current(delta) => apply_delta(current_offset, delta)?,
             SeekFrom::End(delta) => apply_delta(metadata.size, delta)?,
         };
-        *offset = next;
         Ok(next)
     }
 }

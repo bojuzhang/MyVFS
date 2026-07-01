@@ -8,5 +8,5 @@
 
 - syscall 层不直接调用 virtio-net。
 - syscall 层不直接操作 packet queue。
-- `sys_read` 只通过 fd 找到 `File`，再调用 `File::read()`。
+- `sys_read` 只通过 fd 找到 `File` 和当前 offset，再调用 `File::read(offset, ...)`。
 - `sys_open` 只通过路径解析找到 inode，再调用 `Inode::open()`。

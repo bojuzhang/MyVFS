@@ -15,14 +15,14 @@ pub fn translated_str(token: usize, ptr: *const u8) -> FsResult<String>;
 pub fn translated_byte_buffer(token: usize, ptr: *mut u8, len: usize) -> FsResult<UserBuffer>;
 ```
 
-`UserBuffer` 应能被 `File::read()` 安全写入。
+`UserBuffer` 应能被 `File::read(offset, ...)` 安全写入。
 
 ## packetfs 使用方式
 
 ```text
 sys_read
  -> translated_byte_buffer
- -> file.read(UserBuffer)
+ -> file.read(fd_offset, UserBuffer)
  -> PacketCaptureFile writes PCAP bytes
 ```
 

@@ -16,7 +16,7 @@ impl File for Stdin {
         false
     }
 
-    fn read(&self, mut buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn read(&self, _offset: usize, mut buf: UserBuffer<'_>) -> FsResult<usize> {
         let mut total = 0;
         let mut stdin = std::io::stdin();
         for slice in &mut buf.buffers {
@@ -32,7 +32,7 @@ impl File for Stdin {
         Ok(total)
     }
 
-    fn write(&self, _buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn write(&self, _offset: usize, _buf: UserBuffer<'_>) -> FsResult<usize> {
         Err(FsError::Eacces)
     }
 
@@ -50,7 +50,7 @@ impl File for Stdin {
         Ok(())
     }
 
-    fn seek(&self, _pos: SeekFrom) -> FsResult<usize> {
+    fn seek(&self, _current_offset: usize, _pos: SeekFrom) -> FsResult<usize> {
         Err(FsError::Espipe)
     }
 }
@@ -64,11 +64,11 @@ impl File for Stdout {
         true
     }
 
-    fn read(&self, _buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn read(&self, _offset: usize, _buf: UserBuffer<'_>) -> FsResult<usize> {
         Err(FsError::Eacces)
     }
 
-    fn write(&self, buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn write(&self, _offset: usize, buf: UserBuffer<'_>) -> FsResult<usize> {
         let mut stdout = std::io::stdout();
         let data = buf.to_vec();
         stdout.write_all(&data).map_err(|_| FsError::Eio)?;
@@ -90,7 +90,7 @@ impl File for Stdout {
         Ok(())
     }
 
-    fn seek(&self, _pos: SeekFrom) -> FsResult<usize> {
+    fn seek(&self, _current_offset: usize, _pos: SeekFrom) -> FsResult<usize> {
         Err(FsError::Espipe)
     }
 }

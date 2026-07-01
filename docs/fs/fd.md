@@ -85,4 +85,6 @@ impl FdTable {
 
 1. 检查 fd 存在。
 2. 检查 handle flags 可读。
-3. 调用 `handle.file.read()`。
+3. 取出 `FileHandle.offset` 作为本次读取位置。
+4. 调用 `handle.file.read(offset, user_buffer)`。
+5. 按实际读取字节数推进 `FileHandle.offset`。

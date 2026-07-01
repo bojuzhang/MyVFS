@@ -66,12 +66,12 @@ pub fn sys_close(fd: usize) -> isize {
 pub fn sys_read(fd: usize, buf: *mut u8, len: usize) -> isize {
     let token = current_user_token();
     let result = (|| {
-        let (file, flags) = fd_file_and_flags(fd)?;
+        let (file, flags, offset) = fd_file_and_flags(fd)?;
         if !flags.readable() || !file.readable() {
             return Err(FsError::Eacces);
         }
         let user_buf = translated_byte_buffer(token, buf, len)?;
-        let read = file.read(user_buf)?;
+        let read = file.read(offset, user_buf)?;
         advance_fd_offset(fd, read)?;
         Ok(read)
     })();
@@ -83,13 +83,13 @@ pub fn sys_read(fd: usize, buf: *mut u8, len: usize) -> isize {
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     let token = current_user_token();
     let result = (|| {
-        let (file, flags) = fd_file_and_flags(fd)?;
+        let (file, flags, offset) = fd_file_and_flags(fd)?;
         if !flags.writable() || !file.writable() {
             return Err(FsError::Eacces);
         }
         let mut bytes = translated_const_byte_buffer(token, buf, len)?;
         let user_buf = user_buffer_from_bytes(&mut bytes);
-        let written = file.write(user_buf)?;
+        let written = file.write(offset, user_buf)?;
         advance_fd_offset(fd, written)?;
         Ok(written)
     })();
@@ -138,11 +138,11 @@ pub fn sys_getdents(fd: usize, buf: *mut u8, len: usize) -> isize {
         .unwrap_or_else(|err| err.as_isize())
 }
 
-fn fd_file_and_flags(fd: usize) -> vfs::FsResult<(DynFile, OpenFlags)> {
+fn fd_file_and_flags(fd: usize) -> vfs::FsResult<(DynFile, OpenFlags, usize)> {
     let task = current_task().ok_or(FsError::Eio)?;
     let fd_table = task.fd_table.lock().map_err(|_| FsError::Eio)?;
     let handle = fd_table.get(fd)?;
-    Ok((handle.file.clone(), handle.flags))
+    Ok((handle.file.clone(), handle.flags, handle.offset))
 }
 
 fn fd_dir_snapshot(fd: usize) -> vfs::FsResult<(DynFile, OpenFlags, String, usize)> {

@@ -52,7 +52,8 @@ pub trait Inode: Send + Sync {
 - 目录 inode 实现 `lookup/readdir`。
 - 普通文件 inode 对 `lookup/readdir` 返回 `ENOTDIR`。
 - `mkdir` 是 VFS 通用目录创建钩子；默认返回 `EROFS`，ramfs 覆写它，packetfs 保持只读。
-- `read_at/write_at` 主要给 ramfs；`packetfs` 的 `/packets` 以 `File::read` 维护流状态。
+- `read_at/write_at` 主要给 ramfs；`RamFile` 从 `File::read/write` 收到 fd 当前 offset 后转调 inode 的 positioned I/O。
+- `packetfs` 的 `/packets` 以 `File::read` 维护流状态，可忽略 fd offset。
 
 ## trait File
 
@@ -60,13 +61,15 @@ pub trait Inode: Send + Sync {
 pub trait File: Send + Sync {
     fn readable(&self) -> bool;
     fn writable(&self) -> bool;
-    fn read(&self, buf: UserBuffer) -> FsResult<usize>;
-    fn write(&self, buf: UserBuffer) -> FsResult<usize>;
+    fn read(&self, offset: usize, buf: UserBuffer) -> FsResult<usize>;
+    fn write(&self, offset: usize, buf: UserBuffer) -> FsResult<usize>;
     fn stat(&self) -> FsResult<Metadata>;
     fn close(&self) -> FsResult<()>;
-    fn seek(&self, pos: SeekFrom) -> FsResult<usize>;
+    fn seek(&self, current_offset: usize, pos: SeekFrom) -> FsResult<usize>;
 }
 ```
+
+`offset/current_offset` 来自 `FileHandle`。普通随机访问文件应按该 offset 读写并返回本次字节数；`FileHandle` 负责在成功 I/O 后推进 offset。
 
 ## 需要定义的 enum
 

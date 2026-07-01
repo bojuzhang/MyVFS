@@ -1,7 +1,7 @@
 use std::ops::{BitAnd, BitOr, BitOrAssign};
 
 use super::error::{FsError, FsResult};
-use super::vfs::{DynFile, UserBuffer};
+use super::vfs::{DynFile, SeekFrom, UserBuffer};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct OpenFlags {
@@ -102,7 +102,7 @@ impl FileHandle {
         if !self.flags.readable() || !self.file.readable() {
             return Err(FsError::Eacces);
         }
-        let read = self.file.read(buf)?;
+        let read = self.file.read(self.offset, buf)?;
         self.advance_offset(read)?;
         Ok(read)
     }
@@ -112,7 +112,7 @@ impl FileHandle {
         if !self.flags.writable() || !self.file.writable() {
             return Err(FsError::Eacces);
         }
-        let written = self.file.write(buf)?;
+        let written = self.file.write(self.offset, buf)?;
         self.advance_offset(written)?;
         Ok(written)
     }
@@ -124,6 +124,12 @@ impl FileHandle {
 
     pub fn set_offset(&mut self, offset: usize) {
         self.offset = offset;
+    }
+
+    pub fn seek(&mut self, pos: SeekFrom) -> FsResult<usize> {
+        let next = self.file.seek(self.offset, pos)?;
+        self.set_offset(next);
+        Ok(next)
     }
 }
 

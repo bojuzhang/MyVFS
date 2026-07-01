@@ -55,8 +55,9 @@ pub fn sys_getdents(fd: usize, buf: *mut u8, len: usize) -> isize;
 1. 根据 fd 找到 `FileHandle`。
 2. 检查可读权限。
 3. 翻译用户 buffer。
-4. 调用 `file.read(user_buffer)`。
-5. 返回读取字节数。
+4. 将 `FileHandle.offset` 传给 `file.read(offset, user_buffer)`。
+5. 按读取字节数推进 `FileHandle.offset`。
+6. 返回读取字节数。
 
 注意：`sys_read` 不知道 `PacketCaptureFile`，也不直接访问 packet queue。
 

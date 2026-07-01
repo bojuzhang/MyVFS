@@ -47,7 +47,7 @@ impl File for Mutex<PacketFileKind> {
         false
     }
 
-    fn read(&self, buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn read(&self, _offset: usize, buf: UserBuffer<'_>) -> FsResult<usize> {
         let mut file = lock_unpoisoned(self);
         match &mut *file {
             PacketFileKind::RootDir(root) => root.read_dir_entries(buf),
@@ -56,7 +56,7 @@ impl File for Mutex<PacketFileKind> {
         }
     }
 
-    fn write(&self, _buf: UserBuffer<'_>) -> FsResult<usize> {
+    fn write(&self, _offset: usize, _buf: UserBuffer<'_>) -> FsResult<usize> {
         Err(FsError::Erofs)
     }
 
@@ -95,7 +95,7 @@ impl File for Mutex<PacketFileKind> {
         Ok(())
     }
 
-    fn seek(&self, _pos: SeekFrom) -> FsResult<usize> {
+    fn seek(&self, _current_offset: usize, _pos: SeekFrom) -> FsResult<usize> {
         Err(FsError::Espipe)
     }
 }

@@ -78,11 +78,11 @@ pub trait Inode: Send + Sync {
 pub trait File: Send + Sync {
     fn readable(&self) -> bool;
     fn writable(&self) -> bool;
-    fn read(&self, buf: UserBuffer<'_>) -> FsResult<usize>;
-    fn write(&self, buf: UserBuffer<'_>) -> FsResult<usize>;
+    fn read(&self, offset: usize, buf: UserBuffer<'_>) -> FsResult<usize>;
+    fn write(&self, offset: usize, buf: UserBuffer<'_>) -> FsResult<usize>;
     fn stat(&self) -> FsResult<Metadata>;
     fn close(&self) -> FsResult<()>;
-    fn seek(&self, pos: SeekFrom) -> FsResult<usize>;
+    fn seek(&self, current_offset: usize, pos: SeekFrom) -> FsResult<usize>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
