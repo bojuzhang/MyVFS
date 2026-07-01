@@ -16,6 +16,9 @@ pub type DynFileSystem = Arc<dyn FileSystem + Send + Sync>;
 pub trait FileSystem: Send + Sync {
     fn name(&self) -> &'static str;
     fn mount(&self, options: &str) -> FsResult<DynInode>;
+    fn umount(&self) -> FsResult<()> {
+        Ok(())
+    }
     fn root_inode(&self) -> DynInode;
 }
 ```
@@ -24,6 +27,7 @@ pub trait FileSystem: Send + Sync {
 
 - `name()` 用于注册表查找。
 - `mount()` 创建一次挂载实例，返回该实例根 inode。
+- `umount()` 释放文件系统挂载实例相关状态；默认实现为空操作，需要清理活跃状态的文件系统覆写它。
 - `root_inode()` 用于已有实例返回根节点。
 
 ## trait Inode

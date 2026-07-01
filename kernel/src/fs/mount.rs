@@ -8,7 +8,7 @@ pub struct MountEntry {
     pub target_path: String,
     pub mountpoint_inode: DynInode,
     pub root_inode: DynInode,
-    pub fs_name: &'static str,
+    pub fs: DynFileSystem,
 }
 
 pub struct MountTable {
@@ -50,7 +50,7 @@ impl MountTable {
             target_path,
             mountpoint_inode: mountpoint,
             root_inode,
-            fs_name: fs.name(),
+            fs,
         });
         Ok(())
     }
@@ -62,9 +62,7 @@ impl MountTable {
             .iter()
             .position(|entry| entry.target_path == target)
             .ok_or(FsError::Enodev)?;
-        if entries[index].fs_name == "packetfs" {
-            crate::fs::packetfs::begin_active_umount()?;
-        }
+        entries[index].fs.umount()?;
         entries.remove(index);
         Ok(())
     }

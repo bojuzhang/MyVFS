@@ -56,6 +56,9 @@ impl<'a> From<&'a mut [u8]> for UserBuffer<'a> {
 pub trait FileSystem: Send + Sync {
     fn name(&self) -> &'static str;
     fn mount(&self, options: &str) -> FsResult<DynInode>;
+    fn umount(&self) -> FsResult<()> {
+        Ok(())
+    }
     fn root_inode(&self) -> DynInode;
 }
 

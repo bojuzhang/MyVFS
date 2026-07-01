@@ -11,7 +11,7 @@ pub struct MountEntry {
     pub target_path: String,
     pub mountpoint_inode: DynInode,
     pub root_inode: DynInode,
-    pub fs_name: &'static str,
+    pub fs: DynFileSystem,
 }
 ```
 
@@ -39,7 +39,7 @@ impl MountTable {
 - 全局根 inode。
 - 每个挂载点 inode。
 - 被挂载文件系统的根 inode。
-- 文件系统类型名字。
+- 被挂载文件系统对象，用于在 `umount` 时通过 `FileSystem::umount()` 做文件系统私有清理。
 - 目标路径，便于 `umount` 和调试。
 
 ## 核心流程
@@ -50,8 +50,16 @@ impl MountTable {
 2. resolve target。
 3. 确认 target 是目录。
 4. 确认 target 未被挂载。
-5. 调用 `PacketFs::mount(options)`。
+5. 调用 `FileSystem::mount(options)`。
 6. 插入 `MountEntry`。
+
+`umount("/mnt/packetfs")`：
+
+1. 按 target 找到 `MountEntry`。
+2. 调用 `entry.fs.umount()`。
+3. 文件系统私有卸载成功后从挂载表移除该项。
+
+`MountTable` 不根据文件系统名字特判卸载逻辑；例如 `packetfs` 的 reader busy 检查和 active instance 清理由 `PacketFs::umount()` 自己完成。
 
 路径解析时：
 

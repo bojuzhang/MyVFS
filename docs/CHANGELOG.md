@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 将 VFS 卸载流程改为通过 `FileSystem::umount()` 动态分发，`MountTable` 不再按 `packetfs` 名字特判卸载逻辑。
 - 明确内核 crate 当前允许使用 `std`，但内核共享状态锁必须使用 `kernel/src/sync/` 的自写实现。
 - 同步 `sync` 文档：`Mutex<T>` 现在是 `SpinMutex<T>` 的项目内实现，基于 `AtomicBool` 和 `UnsafeCell`，不再包装 `std::sync::Mutex`。
 - 同步 `WaitQueue` 文档：阻塞读使用 `prepare_wait()` 与 `sleep_current_with_guard()` 保留检查条件到入睡之间的 gate，收包后通过 `wake_one()` 唤醒。

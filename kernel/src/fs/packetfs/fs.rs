@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::fs::{DynInode, FileSystem, FsError, FsResult};
 use crate::sync::{Mutex, MutexGuard, WaitQueue};
 
-use super::api::set_active_instance;
+use super::api::{begin_active_umount, set_active_instance};
 use super::inode::PacketInode;
 use super::ring::PacketRing;
 use super::stats::PacketStats;
@@ -123,6 +123,10 @@ impl FileSystem for PacketFs {
         let mounted = PacketFs::new(config)?;
         set_active_instance(mounted.inner.clone())?;
         Ok(mounted.root_inode())
+    }
+
+    fn umount(&self) -> FsResult<()> {
+        begin_active_umount()
     }
 
     fn root_inode(&self) -> DynInode {

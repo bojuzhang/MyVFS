@@ -74,6 +74,7 @@ impl PacketFs {
 impl FileSystem for PacketFs {
     fn name(&self) -> &'static str;
     fn mount(&self, options: &str) -> FsResult<DynInode>;
+    fn umount(&self) -> FsResult<()>;
     fn root_inode(&self) -> DynInode;
 }
 ```
@@ -98,6 +99,13 @@ impl FileSystem for PacketFs {
 4. 创建 root、packets、stats 三个 inode。
 5. 设置 `mounted=true`。
 6. 返回 root inode。
+
+`PacketFs::umount()`：
+
+1. 调用 `begin_active_umount()`。
+2. 如果仍有 `/packets` reader，返回 `EBUSY`。
+3. 将活跃实例置为 unmounted，清空 ring，唤醒等待队列。
+4. 清除 active instance，使后续收包返回 `DroppedInactive`。
 
 ## 错误处理
 

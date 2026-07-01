@@ -38,6 +38,7 @@ pub fn stats_snapshot() -> FsResult<StatsSnapshot>;
 
 ```rust
 pub fn set_active_instance(inner: Arc<PacketFsInner>) -> FsResult<()>;
+pub fn begin_active_umount() -> FsResult<()>;
 pub fn clear_active_instance();
 ```
 
@@ -50,6 +51,8 @@ static ACTIVE_PACKETFS: OnceLock<Mutex<Option<Arc<PacketFsInner>>>>;
 ```
 
 其中 `OnceLock` 来自 `std`，`Mutex` 来自 `crate::sync` 的自写锁实现。
+
+`begin_active_umount()` 只由 `PacketFs::umount()` 触发，VFS mount table 不直接按名字调用 packetfs 私有 API。
 
 ## submit_rx_frame 流程
 
